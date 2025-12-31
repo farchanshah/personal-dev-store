@@ -16,18 +16,17 @@
     "test": "turbo test",
     "test:e2e": "turbo test:e2e",
     "clean": "turbo clean",
-    "db:generate": "cd packages/db && pnpm prisma generate",
-    "db:migrate": "cd packages/db && pnpm prisma migrate dev",
-    "db:push": "cd packages/db && pnpm prisma db push",
-    "db:seed": "cd packages/db && pnpm tsx seed.ts",
-    "db:studio": "cd packages/db && pnpm prisma studio",
+    "db:generate": "cd packages/db && npm run generate",
+    "db:migrate": "cd packages/db && npm run migrate",
+    "db:push": "cd packages/db && npm run push",
+    "db:seed": "cd packages/db && npm run seed",
+    "db:studio": "cd packages/db && npm run studio",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "deploy:staging": "node scripts/deploy.js staging",
     "deploy:production": "node scripts/deploy.js production",
-    "vercel-build": "turbo build --filter=web",
-    "vercel-dev": "turbo dev --filter=web"
+    "vercel-build": "cd apps/web && npm run build"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
@@ -42,8 +41,7 @@
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": "24.x",
-    "pnpm": "8.x"
-  },
-  "packageManager": "pnpm@8.15.0"
+    "node": "18.x",
+    "npm": ">=9.0.0"
+  }
 }
