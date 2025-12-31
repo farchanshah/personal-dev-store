@@ -1,7 +1,6 @@
 {
-  "buildCommand": "npm run build:vercel",
-  "installCommand": "npm install -g pnpm@8.15.1 && pnpm install --no-frozen-lockfile",
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm install",
   "outputDirectory": "apps/web/.next",
-  "framework": "nextjs",
-  "regions": ["iad1"]
+  "framework": "nextjs"
 }
