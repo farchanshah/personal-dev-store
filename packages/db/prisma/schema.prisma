@@ -1,0 +1,480 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "filterJson"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          UserRole  @default(CLIENT)
+  image         String?
+  emailVerified DateTime?
+  
+  // Authentication
+  accounts      Account[]
+  sessions      Session[]
+  magicLinks    MagicLink[]
+  
+  // Profile
+  bio           String?
+  company       String?
+  website       String?
+  github        String?
+  linkedin      String?
+  twitter       String?
+  
+  // Metadata
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  orders        Order[]
+  reviews       Review[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  
+  @@index([email, role, createdAt])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  CLIENT
+  VENDOR
+  MODERATOR
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model MagicLink {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  redirectTo String?
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([email, token, expiresAt])
+  @@map("magic_links")
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  title        String
+  description  String?
+  content      String?     @db.Text
+  type         ProductType
+  category     String?
+  tags         String[]
+  
+  // Pricing
+  priceCents   Int
+  currency     String      @default("USD")
+  comparePriceCents Int?
+  costCents    Int?
+  
+  // Inventory
+  stock        Int?
+  sku          String?
+  barcode      String?
+  
+  // Digital products
+  downloadUrl   String?
+  fileSize      Int?
+  fileType      String?
+  
+  // Physical products
+  weight        Int?        // in grams
+  dimensions    Json?       // { length, width, height }
+  
+  // Display
+  images       String[]
+  featuredImage String?
+  featured     Boolean     @default(false)
+  published    Boolean     @default(true)
+  
+  // Metadata
+  metadata     Json?
+  seoTitle     String?
+  seoDescription String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  // Relations
+  service      Service?
+  orderItems   OrderItem[]
+  reviews      Review[]
+  categories   Category[]  @relation("ProductCategories")
+  
+  @@index([slug, type, published, createdAt])
+  @@index([priceCents])
+  @@fulltext([title, description, tags])
+  @@map("products")
+}
+
+enum ProductType {
+  DIGITAL
+  PHYSICAL
+  SERVICE
+  SUBSCRIPTION
+}
+
+model Service {
+  id              String  @id @default(cuid())
+  productId       String  @unique
+  product         Product @relation(fields: [productId], references: [id])
+  
+  // Service details
+  durationDays    Int?
+  deliverables    Json      // Array of deliverables
+  revisions       Int       @default(1)
+  supportDays     Int       @default(30)
+  requirements    Json?     // JSON form schema
+  process         String[]  // Steps in the process
+  
+  // Add-ons
+  addons          Json?
+  
+  @@map("services")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  image       String?
+  parentId    String?
+  parent      Category? @relation("CategoryParent", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryParent")
+  products    Product[]  @relation("ProductCategories")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("categories")
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  orderNumber   String        @unique @default(uuid())
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
+  
+  // Status
+  status        OrderStatus   @default(PENDING_PAYMENT)
+  serviceStatus ServiceStatus?
+  
+  // Pricing
+  amountCents   Int
+  currency      String        @default("USD")
+  taxCents      Int           @default(0)
+  shippingCents Int           @default(0)
+  discountCents Int           @default(0)
+  
+  // Payment
+  paymentId     String?       @unique
+  stripeSession String?
+  paymentMethod String?
+  
+  // Customer info
+  customerEmail String?
+  customerName  String?
+  customerPhone String?
+  
+  // Billing address
+  billingAddressLine1     String?
+  billingAddressLine2     String?
+  billingAddressCity      String?
+  billingAddressState     String?
+  billingAddressPostalCode String?
+  billingAddressCountry   String?
+  
+  // Shipping address
+  shippingAddressLine1    String?
+  shippingAddressLine2    String?
+  shippingAddressCity     String?
+  shippingAddressState    String?
+  shippingAddressPostalCode String?
+  shippingAddressCountry  String?
+  
+  // Service specific
+  brief         Json?
+  requirements  Json?
+  
+  // Dates
+  paidAt        DateTime?
+  fulfilledAt   DateTime?
+  cancelledAt   DateTime?
+  refundedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  items         OrderItem[]
+  invoices      Invoice[]
+  deliverables  Deliverable[]
+  webhookEvents WebhookEvent[]
+  
+  @@index([userId, status, createdAt])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  FAILED
+}
+
+enum ServiceStatus {
+  AWAITING_BRIEF
+  BRIEF_SUBMITTED
+  IN_PROGRESS
+  READY_FOR_REVIEW
+  REVISION_REQUESTED
+  DELIVERED
+  ACCEPTED
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id])
+  
+  quantity    Int      @default(1)
+  unitPrice   Int
+  totalPrice  Int      @default(0)
+  
+  // Customizations
+  options     Json?
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([orderId, productId])
+  @@map("order_items")
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  
+  invoiceNumber String @unique
+  pdfUrl       String?
+  
+  amountCents  Int
+  currency     String  @default("USD")
+  status      InvoiceStatus @default(PENDING)
+  
+  dueDate     DateTime?
+  paidAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([orderId, invoiceNumber])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Deliverable {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  
+  title       String
+  description String?
+  fileUrl     String
+  fileSize    Int?
+  fileType    String?
+  
+  expiresAt   DateTime?
+  downloaded  Boolean  @default(false)
+  downloadCount Int    @default(0)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([orderId, expiresAt])
+  @@map("deliverables")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  rating      Int      @default(5) // 1-5
+  title       String?
+  content     String?
+  verified    Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([productId, userId])
+  @@index([productId, rating, createdAt])
+  @@map("reviews")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  type        NotificationType
+  title       String
+  message     String?
+  data        Json?
+  
+  read        Boolean  @default(false)
+  readAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ORDER_CREATED
+  ORDER_UPDATED
+  PAYMENT_RECEIVED
+  DELIVERY_SENT
+  NEW_MESSAGE
+  SYSTEM
+  PROMOTIONAL
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String   // 'stripe', 'paypal', etc
+  eventType   String
+  payload     Json
+  processed   Boolean  @default(false)
+  error       String?
+  
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+  
+  @@index([provider, eventType, processed, createdAt])
+  @@map("webhook_events")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  action      String
+  entityType  String?
+  entityId    String?
+  changes     Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, action, createdAt])
+  @@map("audit_logs")
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  keyHash     String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  permissions String[]
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId, keyHash])
+  @@map("api_keys")
+}
+
+model Page {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  content     String   @db.Text
+  published   Boolean  @default(false)
+  
+  seoTitle    String?
+  seoDescription String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("pages")
+}
+
+model Settings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  type        String   @default("string")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("settings")
+}
