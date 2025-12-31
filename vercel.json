@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd apps/web && npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./apps/web/"
+}
