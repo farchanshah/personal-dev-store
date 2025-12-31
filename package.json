@@ -25,7 +25,9 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "deploy:staging": "node scripts/deploy.js staging",
-    "deploy:production": "node scripts/deploy.js production"
+    "deploy:production": "node scripts/deploy.js production",
+    "vercel-build": "turbo build --filter=web",
+    "vercel-dev": "turbo dev --filter=web"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
@@ -40,8 +42,8 @@
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": "18.x",
+    "pnpm": "8.x"
   },
-  "packageManager": "pnpm@8.9.0"
+  "packageManager": "pnpm@8.15.0"
 }
