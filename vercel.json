@@ -3,5 +3,14 @@
   "installCommand": "npm install",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./apps/web/"
+  "regions": ["iad1"],
+  "functions": {
+    "apps/web/pages/api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "TURBO_CACHE": "1",
+    "TURBO_REMOTE_ONLY": "1"
+  }
 }
